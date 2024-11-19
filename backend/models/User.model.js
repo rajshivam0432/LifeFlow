@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   pinCode: { type: String, required: true },
   age: { type: String },
   gender: { type: String },
+  status:{type:String}
 });
 
 const User = mongoose.model("User", userSchema);

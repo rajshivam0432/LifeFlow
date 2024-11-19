@@ -4,8 +4,8 @@ const donorSchema = new mongoose.Schema({
   bloodType: { type: String, required: true },
   gender: { type: String, required: true },
   age: { type: Number, required: true },
+  lastDonationDate: { type: Date, required: true },
 });
-
 
 const Donor = mongoose.model("Donor", donorSchema);
 export default Donor;

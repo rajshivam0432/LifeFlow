@@ -69,7 +69,6 @@ router.post("/register/hospital", async (req, res) => {
     name,
     email,
     password,
-    contact,
     city,
     pinCode,
     address,
@@ -81,7 +80,6 @@ router.post("/register/hospital", async (req, res) => {
     !name ||
     !email ||
     !password ||
-    !contact ||
     !city ||
     !pinCode ||
     !address ||
@@ -105,7 +103,6 @@ router.post("/register/hospital", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      contact,
       city,
       pinCode,
       licenseNumber,
@@ -166,43 +163,75 @@ router.post("/login-donor", async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+
     const pass = await bcrypt.compare(password, user.password);
-    console.log("pass", pass);
     if (!pass) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+
+    // Find the donor document and populate the userId field
+    const donor = await Donor.findOne({ userId: user._id }).populate("userId");
+    if (!donor) {
+      return res.status(404).json({ message: "Donor details not found" });
+    }
+
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    console.log("token", token);
-    res.status(200).json({ msg: "logged in", token,user });
+
+    res.status(200).json({ msg: "logged in", token, donor });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+ // Adjust the path to match your directory structure
+
 router.post("/login-hospital", async (req, res) => {
   const { email, password } = req.body;
+
   try {
+    // Find hospital by email
     const hospital = await Hospital.findOne({ email });
+
     if (!hospital) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
+
+    // Compare provided password with stored hash
     const pass = await bcrypt.compare(password, hospital.password);
-    console.log("pass", pass);
     if (!pass) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
+
+    // Create JWT
     const token = jwt.sign({ userId: hospital._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "1000h",
     });
-    console.log("token", token);
-    res.status(200).json({ msg: "logged in", token, hospital });
+
+    // Respond with hospital data and token
+    res.status(200).json({
+      msg: "Logged in successfully",
+      token,
+      hospital: {
+        id: hospital._id,
+        name: hospital.name,
+        email: hospital.email,
+        contact: hospital.contact,
+        address: hospital.address,
+        city: hospital.city,
+        pinCode: hospital.pinCode,
+        licenseNumber: hospital.licenseNumber,
+        bloodUnits: hospital.bloodUnits, // Include blood units
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error during hospital login:", error);
+    res.status(500).json({ message: "Server error, please try again later" });
   }
 });
+
 
 export default router;
 

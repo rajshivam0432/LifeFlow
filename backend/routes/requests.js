@@ -6,7 +6,7 @@ import Donor from "../models/Donor.model.js";
 import Hospital from "../models/Hospital.model.js";
 import verifyToken from "../middlewares/auth.js";
 import sendBloodRequestToDonor from "../utils/sendMail.js"; // Your existing mail function
-import { sendSmsToDonor } from "../utils/sendSmsToDonor.js"; // Import send SMS function
+// import { sendSmsToDonor } from "../utils/sendSmsToDonor.js"; // Import send SMS function
 
 const router = express.Router();
 

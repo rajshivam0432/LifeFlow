@@ -16,12 +16,16 @@ app.use(cookieParser());
 // app.use(methodOverride("_method"));
 
 // CORS Configuration
+const allowedOrigins =
+  process.env.FRONTEND_DOMAIN_PROD || process.env.FRONTEND_DOMAIN_DEV;
+console.log(allowedOrigins);
 const corsOptions = {
-  origin: "http://localhost:5174", // Allow requests from your frontend domain
-  methods: "GET,POST,PUT,DELETE,PATCH", // Allow the necessary HTTP methods
-  allowedHeaders: "Content-Type, Authorization, credentials", // Allow required headers
-  credentials: true, // Allow sending cookies or authorization headers
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE","PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
+
 
 // Apply CORS middleware
 // app.use(cors(corsOpt/ions));

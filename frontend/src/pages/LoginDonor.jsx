@@ -1,41 +1,43 @@
-import  { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("donor"); // Default role set to 'donor'
+  const [role, setRole] = useState("donor");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const loginUser = async () => {
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       setLoading(true);
-      const userData = { email, password, role }; // Include role in the payload
+      setError("");
+      const userData = { email, password, role };
+
       const endpoint =
         role === "donor"
-          ? "http://localhost:3000/api/auth/login-donor"
-          : "http://localhost:3000/api/auth/login-hospital"; // Choose endpoint based on role
+          ? `${API_BASE_URL}/api/auth/login-donor`
+          : `${API_BASE_URL}/api/auth/login-hospital`;
 
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to login. Please check your credentials.");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to login.");
       }
 
       const data = await response.json();
-      localStorage.setItem("user", JSON.stringify(data.user));
+      const key = role === "donor" ? "donor" : "hospital";
+      localStorage.setItem(key, JSON.stringify(data[key]));
       localStorage.setItem("token", data.token);
 
-      setError("");
-      navigate(role === "donor" ? "/home" : "/hospital-dashboard"); // Navigate based on role
+      navigate(role === "donor" ? "/hospitalist" : "/hospital-dashboard");
     } catch (error) {
       setError(error.message);
     } finally {
@@ -45,12 +47,10 @@ function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-
     if (!email || !password) {
-      setError("Please fill in both fields");
+      setError("Please fill in both fields.");
       return;
     }
-
     loginUser();
   };
 
@@ -86,7 +86,6 @@ function Login() {
             <input
               type="email"
               id="email"
-              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 mt-2 border border-gray-300 rounded-lg"
@@ -102,7 +101,6 @@ function Login() {
             <input
               type="password"
               id="password"
-              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 mt-2 border border-gray-300 rounded-lg"
@@ -122,9 +120,12 @@ function Login() {
 
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600">
-            Dont have an account?{" "}
-            <a href="/register" className="text-red-500 hover:underline">
-              Register
+            Don’t have an account?{" "}
+            <a
+              href={`/register-${role}`}
+              className="text-red-500 hover:underline"
+            >
+              Register as {role}
             </a>
           </p>
         </div>

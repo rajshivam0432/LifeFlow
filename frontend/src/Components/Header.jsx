@@ -1,38 +1,83 @@
-import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+
 export default function Header() {
+  const navigate = useNavigate();
+
+  // Safely retrieve and parse donor and hospital data
+  let parsedDonor = null;
+  let parsedHospital = null;
+
+  try {
+    const donorData = localStorage.getItem("donor");
+    const hospitalData = localStorage.getItem("hospital");
+
+    if (donorData) {
+      parsedDonor = JSON.parse(donorData);
+    }
+    if (hospitalData) {
+      parsedHospital = JSON.parse(hospitalData);
+    }
+  } catch (error) {
+    console.error("Error parsing user data:", error.message);
+  }
+
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem("donor");
+      localStorage.removeItem("hospital");
+      localStorage.removeItem("token");
+      navigate("/");
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
   return (
     <header className="shadow sticky z-50 top-0">
       <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5">
-        <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
+        <div className="flex justify-between items-center mx-auto max-w-screen-xl">
+          {/* Logo */}
           <Link to="/" className="flex items-center">
             <img
-              src="https://th.bing.com/th/id/OIP.yjNWafT_5skmEb3xBT__BAHaMk?rs=1&pid=ImgDetMain"
-              className="mr-3 h-12"
+              src="/logo.png" // Replace with your image path or URL
               alt="Logo"
+              className="h-12 mr-3"
             />
           </Link>
-          <div className="flex items-center lg:order-2">
-            
-            <Link
-              to="/login-donor"
-              className="text-white bg-orange-700 hover:bg-orange-800 focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2 focus:outline-none"
-            >
-              Login
-            </Link>
+
+          {/* Login / User Greeting */}
+          <div className="hidden lg:flex items-center lg:order-2">
+            {parsedDonor || parsedHospital ? (
+              <span className="text-gray-700 flex items-center">
+                Hello,{" "}
+                {parsedDonor?.userId?.name || parsedHospital?.name || "User"}
+                <button
+                  onClick={handleLogout}
+                  className="text-white bg-orange-700 hover:bg-orange-800 focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 mr-2 ml-3"
+                >
+                  Logout
+                </button>
+              </span>
+            ) : (
+              <Link
+                to="/login-donor"
+                className="text-white bg-orange-700 hover:bg-orange-800 focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 mr-2"
+              >
+                Login
+              </Link>
+            )}
           </div>
-          <div
-            className="hidden justify-between items-center w-full lg:flex lg:w-auto lg:order-1"
-            id="mobile-menu-2"
-          >
-            <ul className="flex flex-col mt-4 font-medium lg:flex-row lg:space-x-8 lg:mt-0">
+
+          {/* Navigation Links */}
+          <div className="flex items-center justify-between w-full lg:w-auto lg:order-1">
+            <ul className="flex flex-row lg:space-x-8 lg:mt-0 font-medium">
               <li>
                 <NavLink
-                  to="/home"
+                  to="/"
                   className={({ isActive }) =>
                     `block ${
                       isActive ? "text-orange-700" : "text-gray-700"
-                    } py-2 pr-4 pl-3 duration-200 border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
+                    } py-2 pr-4 pl-3 duration-200 hover:text-orange-700 lg:p-0`
                   }
                 >
                   Home
@@ -44,7 +89,7 @@ export default function Header() {
                   className={({ isActive }) =>
                     `block ${
                       isActive ? "text-orange-700" : "text-gray-700"
-                    } py-2 pr-4 pl-3 duration-200 border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
+                    } py-2 pr-4 pl-3 duration-200 hover:text-orange-700 lg:p-0`
                   }
                 >
                   About Us
@@ -56,12 +101,40 @@ export default function Header() {
                   className={({ isActive }) =>
                     `block ${
                       isActive ? "text-orange-700" : "text-gray-700"
-                    } py-2 pr-4 pl-3 duration-200 border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
+                    } py-2 pr-4 pl-3 duration-200 hover:text-orange-700 lg:p-0`
                   }
                 >
                   Contact Us
                 </NavLink>
               </li>
+              {parsedHospital && (
+                <li>
+                  <NavLink
+                    to="/hospital-dashboard"
+                    className={({ isActive }) =>
+                      `block ${
+                        isActive ? "text-orange-700" : "text-gray-700"
+                      } py-2 pr-4 pl-3 duration-200 hover:text-orange-700 lg:p-0`
+                    }
+                  >
+                    Hospital Dashboard
+                  </NavLink>
+                </li>
+              )}
+              {parsedDonor && (
+                <li>
+                  <NavLink
+                    to="/hospitalist"
+                    className={({ isActive }) =>
+                      `block ${
+                        isActive ? "text-orange-700" : "text-gray-700"
+                      } py-2 pr-4 pl-3 duration-200 hover:text-orange-700 lg:p-0`
+                    }
+                  >
+                    Hospital List
+                  </NavLink>
+                </li>
+              )}
             </ul>
           </div>
         </div>

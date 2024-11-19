@@ -68,9 +68,10 @@ function DonorRegistrationForm() {
   // Handle form submission
   // const token = localStorage.getItem("token");
   const registerDonor = async () => {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     try {
       const response = await fetch(
-        "http://localhost:3000/api/auth/register/donor",
+       `${API_BASE_URL}/api/auth/register/donor`,
         {
           method: "POST",
           headers: {

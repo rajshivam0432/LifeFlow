@@ -20,12 +20,12 @@ dotenv.config();
     }
 
     const token = authHeader.split(" ")[1];
-    // console.log("Token:", token);
+    console.log("Token:", token);
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log("Decoded token:", decoded);
+    console.log("Decoded token:", decoded);
 
-    req.hospitalId = decoded.userId; // Assuming 'userId' is the correct field name
+    req.Id = decoded.userId; // Assuming 'userId' is the correct field name
     next();
   } catch (error) {
     console.error("Token verification error:", error);

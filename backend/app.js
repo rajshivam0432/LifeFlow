@@ -20,8 +20,8 @@ const allowedOrigins =
   process.env.FRONTEND_DOMAIN_PROD || process.env.FRONTEND_DOMAIN_DEV;
 console.log(allowedOrigins);
 const corsOptions = {
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE","PATCH"],
+  origin: ["http://localhost:5173"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };

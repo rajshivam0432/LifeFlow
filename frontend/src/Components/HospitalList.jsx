@@ -3,17 +3,16 @@ import { useEffect, useState } from "react";
 const HospitalList = () => {
   const [hospitals, setHospitals] = useState([]);
   const [selectedHospital, setSelectedHospital] = useState(null);
-  const [showDonateForm, setShowDonateForm] = useState(false);
-  const [donationData, setDonationData] = useState({
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestData, setRequestData] = useState({
     bloodType: "",
     units: "",
-    donorName: "",
+    requesterName: "",
     age: "",
     gender: "",
   });
 
   useEffect(() => {
-    // Fetch hospital data from the API
     const fetchHospitals = async () => {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       try {
@@ -27,8 +26,6 @@ const HospitalList = () => {
         });
 
         const data = await response.json();
-        console.log("Hospital data:", data);
-
         if (Array.isArray(data)) {
           setHospitals(data);
         } else {
@@ -42,65 +39,37 @@ const HospitalList = () => {
     fetchHospitals();
   }, []);
 
-  const handleShowBloodUnits = (hospital) => {
-    setSelectedHospital(hospital);
-  };
+  const storedUser = localStorage.getItem("donor");
+  const user = storedUser ? JSON.parse(storedUser) : null;
 
-  const storedDonor = localStorage.getItem("donor");
-  const donor = storedDonor ? JSON.parse(storedDonor) : null;
-
-  if (!donor) {
-    console.error("No donor data found in localStorage");
-    return <div>No donor data available. Please log in again.</div>;
+  if (!user) {
+    return <div>No user data available. Please log in again.</div>;
   }
 
-  const handleShowDonateForm = (bloodType) => {
-    setShowDonateForm(true);
-    setDonationData((prevData) => ({
+  const handleShowRequestForm = (hospital) => {
+    setSelectedHospital(hospital);
+    setShowRequestForm(true);
+    setRequestData((prevData) => ({
       ...prevData,
-      bloodType: bloodType || "", // If bloodType is empty, set it to an empty string
-      donorName: donor.userId?.name || "",
-      age: donor.age || "",
-      gender: donor.gender || "",
+      requesterName: user.userId?.name || "",
+      age: user.age || "",
+      gender: user.gender || "",
     }));
   };
 
-  const handleDonationChange = (e) => {
+  const handleRequestChange = (e) => {
     const { name, value } = e.target;
-    setDonationData((prevData) => ({ ...prevData, [name]: value }));
+    setRequestData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleDonationSubmit = async (e) => {
+  const handleRequestSubmit = async (e) => {
     e.preventDefault();
 
-    const updatedHospitals = hospitals.map((hospital) => {
-      if (hospital._id === selectedHospital._id) {
-        const updatedBloodUnits = [...hospital.bloodUnits];
-        const existingBloodUnit = updatedBloodUnits.find(
-          (unit) => unit.bloodType === donationData.bloodType
-        );
-
-        if (existingBloodUnit) {
-          existingBloodUnit.unitsAvailable += parseInt(donationData.units);
-        } else {
-          updatedBloodUnits.push({
-            bloodType: donationData.bloodType,
-            unitsAvailable: parseInt(donationData.units),
-            expirationDate: new Date().toISOString().split("T")[0],
-          });
-        }
-
-        return { ...hospital, bloodUnits: updatedBloodUnits };
-      }
-      return hospital;
-    });
-
-    setHospitals(updatedHospitals);
-  
     try {
+      console.log("requestdat", requestData);
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(
-        `${API_BASE_URL}/api/request/hospitals/${selectedHospital._id}/updateBloodUnits`,
+        `${API_BASE_URL}/api/request/hospitals/${selectedHospital._id}/requestBlood`,
         {
           method: "POST",
           credentials: "include",
@@ -108,32 +77,26 @@ const HospitalList = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({
-            bloodUnits: updatedHospitals.find(
-              (h) => h._id === selectedHospital._id
-            ).bloodUnits,
-          }),
+          body: JSON.stringify(requestData),
         }
       );
 
       if (response.ok) {
-        console.log("Blood units updated successfully");
-        alert("Thank you for your contrubtion");
+        alert("Blood request submitted successfully");
+        setShowRequestForm(false);
+        setRequestData({
+          bloodType: "",
+          units: "",
+          requesterName: "",
+          age: "",
+          gender: "",
+        });
       } else {
-        console.error("Failed to update blood units", response.statusText);
+        console.error("Failed to submit blood request", response.statusText);
       }
     } catch (error) {
-      console.error("Error updating blood units:", error);
+      console.error("Error submitting blood request:", error);
     }
-
-    setShowDonateForm(false);
-    setDonationData({
-      bloodType: "",
-      units: "",
-      donorName: "",
-      age: "",
-      gender: "",
-    });
   };
 
   return (
@@ -162,104 +125,42 @@ const HospitalList = () => {
               Email: {hospital.email}
             </p>
 
-            {/* Button to show blood units */}
             <button
-              onClick={() => handleShowBloodUnits(hospital)}
-              className={`px-4 py-2 rounded transition-colors duration-300 ${
-                !donationData.bloodType ||
-                donationData.bloodType === "Not Applicable"
-                  ? "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-300 " // Gray color when no blood type selected
-                  : "bg-red-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-300" // Blue color when blood type is available
-              }`}
+              onClick={() => handleShowRequestForm(hospital)}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-300"
             >
-              Show Blood Units
+              Request Blood
             </button>
           </div>
         ))}
       </div>
 
-      {selectedHospital && selectedHospital.bloodUnits ? (
-        <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">
-            Blood Units Available at {selectedHospital.name}
-          </h2>
-          <div className="space-y-4">
-            {selectedHospital.bloodUnits.length > 0 ? (
-              selectedHospital.bloodUnits.map((unit, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-100 p-4 rounded-lg shadow-sm border border-gray-200"
-                >
-                  <p>
-                    <span className="font-semibold">Blood Type:</span>{" "}
-                    {unit.bloodType || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Units Available:</span>{" "}
-                    {unit.unitsAvailable > 0 ? unit.unitsAvailable : "0"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Expiration Date:</span>{" "}
-                    {new Date(unit.expirationDate).toLocaleDateString() ||
-                      "N/A"}
-                  </p>
-                  <button
-                    onClick={() => handleShowDonateForm(unit.bloodType)}
-                    className="mt-2 ml-2 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors duration-300"
-                  >
-                    Donate
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="bg-gray-100 p-4 rounded-lg shadow-sm border border-gray-200">
-                <p>
-                  <span className="font-semibold">Blood Type:</span> N/A
-                </p>
-                <p>
-                  <span className="font-semibold">Units Available:</span> 0
-                </p>
-                <p>
-                  <span className="font-semibold">Expiration Date:</span> N/A
-                </p>
-                <button
-                  onClick={() => handleShowDonateForm("No Blood Type")}
-                  className="mt-2 ml-2 bg-gray-600 text-white px-4 py-2 rounded"
-                >
-                  Donate
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="mt-10">
-          Please select a hospital to view blood units.
-        </div>
-      )}
-
-      {showDonateForm && (
+      {showRequestForm && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold mb-4">Donate Blood</h2>
-          <form onSubmit={handleDonationSubmit}>
+          <h2 className="text-2xl font-bold mb-4">
+            Request Blood from {selectedHospital?.name}
+          </h2>
+          <form onSubmit={handleRequestSubmit}>
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2">
                 Blood Type
               </label>
               <select
                 name="bloodType"
-                value={donationData.bloodType || "Not Applicable"} // Default to "Not Applicable"
-                onChange={handleDonationChange}
+                value={requestData.bloodType}
+                onChange={handleRequestChange}
                 className="border border-gray-300 p-2 rounded w-full"
+                required
               >
-                <option value="Not Applicable">Not Applicable</option>
+                <option value="">Select Blood Type</option>
                 <option value="A+">A+</option>
                 <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="A-">A-</option>
                 <option value="AB+">AB+</option>
+                <option value="O+">O+</option>
+                <option value="A-">A-</option>
+                <option value="B-">B-</option>
                 <option value="AB-">AB-</option>
-                <option value="O">O</option>
+                <option value="O-">O-</option>
               </select>
             </div>
             <div className="mb-4">
@@ -269,21 +170,20 @@ const HospitalList = () => {
               <input
                 type="number"
                 name="units"
-                value={donationData.units}
-                onChange={handleDonationChange}
+                value={requestData.units}
+                onChange={handleRequestChange}
                 required
                 className="border border-gray-300 p-2 rounded w-full"
               />
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2">
-                Donor Name
+                Requester Name
               </label>
               <input
                 type="text"
-                name="donorName"
-                value={donationData.donorName}
-                onChange={handleDonationChange}
+                name="requesterName"
+                value={requestData.requesterName}
                 readOnly
                 className="border border-gray-300 p-2 rounded w-full"
               />
@@ -295,8 +195,7 @@ const HospitalList = () => {
               <input
                 type="number"
                 name="age"
-                value={donationData.age}
-                onChange={handleDonationChange}
+                value={requestData.age}
                 readOnly
                 className="border border-gray-300 p-2 rounded w-full"
               />
@@ -308,8 +207,7 @@ const HospitalList = () => {
               <input
                 type="text"
                 name="gender"
-                value={donationData.gender}
-                onChange={handleDonationChange}
+                value={requestData.gender}
                 readOnly
                 className="border border-gray-300 p-2 rounded w-full"
               />
@@ -318,7 +216,7 @@ const HospitalList = () => {
               type="submit"
               className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition-colors duration-300"
             >
-              Submit Donation
+              Submit Request
             </button>
           </form>
         </div>

@@ -5,7 +5,10 @@ import User from "../models/User.model.js";
 import Donor from "../models/Donor.model.js";
 import Hospital from "../models/Hospital.model.js";
 import verifyToken from "../middlewares/auth.js";
-import sendBloodRequestToDonor from "../utils/sendMail.js"; // Your existing mail function
+import {
+  sendBloodRequestToDonor,
+  sendBloodRequestToHospital,
+} from "../utils/sendMail.js"; // Your existing mail function
 // import { sendSmsToDonor } from "../utils/sendSmsToDonor.js"; // Import send SMS function
 
 const router = express.Router();
@@ -83,24 +86,54 @@ router.post("/hospitals/me/requestBlood", verifyToken, async (req, res) => {
 
 
 // Route to update blood units in a hospital
-router.patch("/hospitals/:hospitalId/updateBloodUnits", async (req, res) => {
-  const id = req.params.hospitalId;
-  const { bloodUnits } = req.body;
-
-  try {
-    const hospital = await Hospital.findById(id);
-    if (!hospital) {
-      return res.status(404).json({ message: "Hospital not found" });
+router.post(
+  "/hospitals/:hospitalId/requestBlood",
+  verifyToken,
+  async (req, res) => {
+    const { hospitalId } = req.params;
+    const {bloodType, units } = req.body;
+    const { Id } = req;
+ console.log("iddddd", Id, bloodType, units);
+    // Validate request data
+    if (!Id || !bloodType || !units) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    hospital.bloodUnits = bloodUnits;
-    await hospital.save();
-    res.status(200).json(hospital);
-  } catch (error) {
-    console.error("Error updating hospital:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    try {
+      // Find the hospital by ID
+      const hospital = await Hospital.findById(hospitalId);
+      if (!hospital) {
+        return res.status(404).json({ message: "Hospital not found" });
+      }
+
+      // Find the user by ID
+      const user = await User.findById(Id);
+      console.log(user)
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Call function to send a blood request
+      const requestStatus =  sendBloodRequestToHospital(
+        user,
+        bloodType,
+        units,
+        hospital
+      );
+
+      if (requestStatus) {
+        res
+          .status(200)
+          .json({ message: "Blood request sent successfully", hospital });
+      } else {
+        res.status(500).json({ message: "Failed to send blood request" });
+      }
+    } catch (error) {
+      console.error("Error sending blood request:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
-});
+);
 
 // Route to add a new hospital
 router.post("/hospitals", async (req, res) => {
